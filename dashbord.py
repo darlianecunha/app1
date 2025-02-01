@@ -5,7 +5,7 @@ import pandas as pd
 file_path = "data.xlsx"
 @st.cache_data
 def load_data():
-    return pd.read_excel(file_path, engine="openpyxl")
+    return pd.read_excel(file_path, engine="data.xlsx")
 
 df = load_data()
 

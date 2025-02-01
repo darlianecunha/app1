@@ -1,5 +1,17 @@
 import streamlit as st
 import pandas as pd
+import subprocess
+import sys
+
+# Garantir que matplotlib esteja instalado
+def install_and_import(package):
+    try:
+        __import__(package)
+    except ModuleNotFoundError:
+        subprocess.check_call([sys.executable, "-m", "pip", "install", package])
+        __import__(package)
+
+install_and_import("matplotlib")
 import matplotlib.pyplot as plt
 
 # Carregar o arquivo
@@ -7,7 +19,7 @@ import matplotlib.pyplot as plt
 def load_data():
     file_path = "data.xlsx"
     try:
-        df = pd.read_excel(file_path, engine="openpyxl")
+        df = pd.read_excel(file_path, engine="data")
         return df
     except Exception as e:
         st.error(f"Erro ao carregar o arquivo: {e}")

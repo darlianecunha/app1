@@ -2,12 +2,10 @@ import streamlit as st
 import pandas as pd
 
 # Carregar o arquivo
-file_path = "data.xlsx"
 @st.cache_data
 def load_data():
-    return pd.read_excel(file_path, engine="data.xlsx")
+    file_path = "data.xlsx"
 
-df = load_data()
 
 # Configuração do Streamlit
 st.title("Movimentação Portuária por Produto e País")

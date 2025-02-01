@@ -1,26 +1,17 @@
 import streamlit as st
 import pandas as pd
-import subprocess
-import sys
-
-# Garantir que matplotlib esteja instalado
-def install_and_import(package):
-    try:
-        __import__(package)
-    except ModuleNotFoundError:
-        subprocess.check_call([sys.executable, "-m", "pip", "install", package])
-        __import__(package)
-
-install_and_import("matplotlib")
 import matplotlib.pyplot as plt
 
 # Carregar o arquivo
 @st.cache_data
 def load_data():
-    file_path = "data.xlsx"
+    file_path = "data.xlsx"  # Certifique-se de que o nome do arquivo está correto
     try:
-        df = pd.read_excel(file_path, engine="data")
+        df = pd.read_excel(file_path, engine="openpyxl")  # Use engine="openpyxl" para .xlsx
         return df
+    except FileNotFoundError:
+        st.error("Erro: O arquivo 'data.xlsx' não foi encontrado. Verifique se ele está no diretório correto.")
+        return None
     except Exception as e:
         st.error(f"Erro ao carregar o arquivo: {e}")
         return None
@@ -54,3 +45,4 @@ if df is not None:
         st.error("O arquivo não contém as colunas esperadas: 'País', 'Produto' e 'Movimentação'.")
 else:
     st.warning("Nenhum dado foi carregado. Verifique o arquivo e tente novamente.")
+

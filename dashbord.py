@@ -1,79 +1,71 @@
 import streamlit as st
 import pandas as pd
-import matplotlib.pyplot as plt
 
-# Função para formatar números no padrão brasileiro
-def formatar_numeros(df, colunas):
-    for coluna in colunas:
-        df[coluna] = df[coluna].apply(lambda x: f"{x:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".") if pd.notnull(x) else x)
-    return df
+# Definir estilo global com fundo branco e títulos azul escuro
+st.markdown(
+    """
+    <style>
+        body {
+            background-color: white;
+            color: black;
+        }
+        h1, h2 {
+            color: #003366;
+        }
+        .stDataFrame, .stTable {
+            background-color: white;
+            color: black;
+        }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
 
-# Carregar o arquivo
+# Cabeçalho do Dashboard
+st.markdown("<h1 style='text-align: center; color: #003366;'>Dashboard de Exportações por País e Produto (2023)</h1>", unsafe_allow_html=True)
+
+# Carregar os dados
 @st.cache_data
 def load_data():
-    file_path = "data.xlsx"
-    try:
-        df = pd.read_excel(file_path, engine="openpyxl")
-        
-        # Padronizar nomes das colunas
-        colunas_originais = df.columns.tolist()
-        colunas_novas = [c.strip().lower() for c in colunas_originais]  # Remove espaços e coloca em minúsculas
-        mapeamento = {
-            "país": "País",
-            "produto": "Produto",
-            "movimentação": "Movimentação",
-            "ano": "Ano"
-        }
-        
-        df.columns = [mapeamento.get(c, c) for c in colunas_novas]  # Renomeia colunas se necessário
-        
-        # Verificar se todas as colunas necessárias existem
-        required_columns = {"País", "Produto", "Movimentação", "Ano"}
-        if not required_columns.issubset(df.columns):
-            st.error(f"O arquivo não contém todas as colunas esperadas: {required_columns}. Colunas encontradas: {df.columns.tolist()}")
-            return None
-
-        # Ajustar números para padrão brasileiro
-        df = formatar_numeros(df, ["Movimentação"])
-
-        # Converter anos para formato correto (YYYY)
-        df["Ano"] = df["Ano"].astype(str).str.extract(r'(\d{4})')  # Garante que os anos tenham 4 dígitos
-
-        return df
-    except FileNotFoundError:
-        st.error("Erro: O arquivo 'data.xlsx' não foi encontrado. Verifique se ele está no diretório correto.")
-        return None
-    except Exception as e:
-        st.error(f"Erro ao carregar o arquivo: {e}")
-        return None
+    file_path = "mov portuario por produto e pais.xlsx"
+    df = pd.read_excel(file_path)
+    df = df.rename(columns={
+        'Ano': 'ano',
+        'Nomenclatura Simplificada': 'tipo_produto',
+        'Total de Movimentação Portuária\nem toneladas (t)': 'movimentacao_total_t',
+        'País Origem': 'pais'
+    })
+    df = df[df["ano"] == 2023]  # Filtrar apenas para 2023
+    return df
 
 df = load_data()
 
-# Configuração do Streamlit
-st.title("Movimentação Portuária por Produto e País")
+# Calcular total geral para percentual
+total_movimentacao_geral = df["movimentacao_total_t"].sum()
 
-if df is not None:
-    # Mostrar um preview dos dados
-    st.write("Pré-visualização dos dados:")
-    st.dataframe(df.head())
-    
-    # Filtro por país
-    pais = st.selectbox("Selecione um país:", df['País'].unique())
-    df_filtrado = df[df['País'] == pais]
+# Agregar por país e produto
+resumo = df.groupby(["pais", "tipo_produto"], as_index=False)["movimentacao_total_t"].sum()
+resumo_total_pais = df.groupby("pais", as_index=False)["movimentacao_total_t"].sum()
+resumo_total_pais["percentual"] = (resumo_total_pais["movimentacao_total_t"] / total_movimentacao_geral) * 100
 
-    # Filtro por ano
-    anos = sorted(df_filtrado['Ano'].unique())
-    ano_selecionado = st.selectbox("Selecione um ano:", anos)
-    df_filtrado = df_filtrado[df_filtrado['Ano'] == ano_selecionado]
+# Filtros
+st.sidebar.header("Filtros")
+pais_selecionado = st.sidebar.selectbox("Selecione o País", ["Todos"] + list(resumo["pais"].unique()), index=0)
+tipo_produto_selecionado = st.sidebar.selectbox("Selecione o Tipo de Produto", ["Todos"] + list(resumo["tipo_produto"].unique()), index=0)
 
-    st.write(f"Dados filtrados para {pais} no ano {ano_selecionado}:")
-    st.dataframe(df_filtrado)
+# Aplicar filtros
+if pais_selecionado != "Todos":
+    resumo = resumo[resumo["pais"] == pais_selecionado]
+if tipo_produto_selecionado != "Todos":
+    resumo = resumo[resumo["tipo_produto"] == tipo_produto_selecionado]
 
-    # Gráfico de movimentação por produto
-    st.write("Movimentação por Produto")
-    fig, ax = plt.subplots()
-    df_filtrado.groupby("Produto")["Movimentação"].sum().plot(kind='bar', ax=ax)
-    ax.set_ylabel("Movimentação (toneladas)")
-    st.pyplot(fig)
-else:
-    st.warning("Nenhum dado foi carregado. Verifique o arquivo e tente novamente.")
+# Exibir tabelas
+st.subheader("Movimentação por País e Produto")
+st.dataframe(resumo, width=1000)
+
+st.subheader("Total por País e Percentual de Exportações")
+st.dataframe(resumo_total_pais, width=1000)
+
+# Crédito 
+st.write("Fonte: Estatístico Aquaviário ANTAQ")
+st.markdown("<p><strong>Ferramenta desenvolvida por Darliane Cunha.</strong></p>", unsafe_allow_html=True)

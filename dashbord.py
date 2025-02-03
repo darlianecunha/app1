@@ -22,7 +22,7 @@ st.markdown(
 )
 
 # Cabeçalho do Dashboard
-st.markdown("<h1 style='text-align: center; color: #003366;'>Dashboard de Exportações por País e Produto (2023)</h1>", unsafe_allow_html=True)
+st.markdown("<h1 style='text-align: center; color: #003366;'>Exportações do Setor Portuário por País e Produto (2023)</h1>", unsafe_allow_html=True)
 
 # Carregar os dados
 @st.cache_data
@@ -48,6 +48,11 @@ resumo = df.groupby(["pais", "tipo_produto"], as_index=False)["movimentacao_tota
 resumo_total_pais = df.groupby("pais", as_index=False)["movimentacao_total_t"].sum()
 resumo_total_pais["percentual"] = (resumo_total_pais["movimentacao_total_t"] / total_movimentacao_geral) * 100
 
+# Formatar números padrão Brasil
+resumo["movimentacao_total_t"] = resumo["movimentacao_total_t"].apply(lambda x: f"{x:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."))
+resumo_total_pais["movimentacao_total_t"] = resumo_total_pais["movimentacao_total_t"].apply(lambda x: f"{x:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."))
+resumo_total_pais["percentual"] = resumo_total_pais["percentual"].apply(lambda x: f"{x:.2f}%")
+
 # Filtros
 st.sidebar.header("Filtros")
 pais_selecionado = st.sidebar.selectbox("Selecione o País", ["Todos"] + list(resumo["pais"].unique()), index=0)
@@ -56,15 +61,14 @@ tipo_produto_selecionado = st.sidebar.selectbox("Selecione o Tipo de Produto", [
 # Aplicar filtros
 if pais_selecionado != "Todos":
     resumo = resumo[resumo["pais"] == pais_selecionado]
-if tipo_produto_selecionado != "Todos":
-    resumo = resumo[resumo["tipo_produto"] == tipo_produto_selecionado]
 
 # Exibir tabelas
 st.subheader("Movimentação por País e Produto")
 st.dataframe(resumo, width=1000)
 
-st.subheader("Total por País e Percentual de Exportações")
-st.dataframe(resumo_total_pais, width=1000)
+if pais_selecionado != "Todos":
+    st.subheader("Total por País e Percentual de Exportações")
+    st.dataframe(resumo_total_pais[resumo_total_pais["pais"] == pais_selecionado], width=1000)
 
 # Crédito 
 st.write("Fonte: Estatístico Aquaviário ANTAQ")

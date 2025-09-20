@@ -22,7 +22,7 @@ st.markdown(
 )
 
 # Cabeçalho do Dashboard
-st.markdown("<h1 style='text-align: center; color: #003366;'>Exportações do Setor Portuário por País e Produto (2023)</h1>", unsafe_allow_html=True)
+st.markdown("<h1 style='text-align: center; color: #003366;'>Exportações Portuárias (2023)</h1>", unsafe_allow_html=True)
 
 # Carregar os dados
 @st.cache_data
